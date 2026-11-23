@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Set;
+import java.util.Locale;
 
 @Component
 public class SsrfValidator {
@@ -85,7 +86,7 @@ public class SsrfValidator {
             return InetAddress.getAllByName(cleanHost);
         }
 
-        if (FORBIDDEN_HOSTNAMES.contains(cleanHost.toLowerCase())) {
+        if (FORBIDDEN_HOSTNAMES.contains(cleanHost.toLowerCase(Locale.ROOT))) {
             log.warn("Blocked SSRF attempt targeting forbidden hostname: {}", cleanHost);
             throw new UnknownHostException("Access to loopback hostname '" + cleanHost + "' is forbidden");
         }
