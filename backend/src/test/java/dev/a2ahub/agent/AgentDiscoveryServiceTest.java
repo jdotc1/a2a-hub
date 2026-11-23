@@ -186,6 +186,22 @@ class AgentDiscoveryServiceTest {
     }
 
     @Test
+    @DisplayName("Should union tags from all agents sharing a skill ID")
+    void shouldUnionTagsForSharedSkill() {
+        var first = new AgentSkillRepository.SkillAgentProjection(
+                "shared", "Shared Skill", "Description", List.of("alpha"), weatherAgent.getId());
+        var second = new AgentSkillRepository.SkillAgentProjection(
+                "shared", "Shared Skill", "Description", List.of("beta"), calculatorAgent.getId());
+        when(agentSkillRepository.findAllSkillProjections()).thenReturn(List.of(first, second));
+
+        var skills = discoveryService.getDistinctSkills();
+
+        assertThat(skills).hasSize(1);
+        assertThat(skills.getFirst().tags()).containsExactlyInAnyOrder("alpha", "beta");
+        assertThat(skills.getFirst().agentCount()).isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("Should aggregate distinct tags from PostgreSQL projection")
     void shouldGetDistinctTags() {
         AgentSkillRepository.TagCountProjection p1 = new AgentSkillRepository.TagCountProjection() {
