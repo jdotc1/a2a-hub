@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.Ordered;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -38,8 +40,9 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public OncePerRequestFilter securityHeadersFilter() {
-        return new OncePerRequestFilter() {
+    public FilterRegistrationBean<OncePerRequestFilter> securityHeadersFilter() {
+        FilterRegistrationBean<OncePerRequestFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new OncePerRequestFilter() {
             @Override
             protected void doFilterInternal(HttpServletRequest request,
                                             HttpServletResponse response,
@@ -71,6 +74,9 @@ public class WebConfig implements WebMvcConfigurer {
 
                 filterChain.doFilter(request, response);
             }
-        };
+        });
+        // After TraceContextFilter, but ahead of authentication and rate limiting.
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
+        return registration;
     }
 }
