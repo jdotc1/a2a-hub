@@ -15,6 +15,8 @@ import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.IntStream;
 import java.util.UUID;
 
 @Service
@@ -104,11 +106,18 @@ public class AgentRegistryService {
 
         // Sync individual skills into relational table for fast index querying
         if (card.skills() != null && !card.skills().isEmpty()) {
-            List<AgentSkillEntity> skillEntities = card.skills().stream().map(s -> {
+            List<AgentSkillEntity> skillEntities = IntStream.range(0, card.skills().size()).mapToObj(index -> {
+                AgentCard.Skill s = card.skills().get(index);
                 AgentSkillEntity entity = new AgentSkillEntity();
                 entity.setAgent(savedAgent);
-                entity.setSkillId(s.id() != null && !s.id().isBlank() ? s.id() : s.name().toLowerCase().replace(" ", "_"));
-                entity.setName(s.name() != null ? s.name() : "Unnamed Skill");
+                String name = s.name();
+                // Missing fields in externally fetched cards must not break registration.
+                String skillId = s.id() != null && !s.id().isBlank() ? s.id()
+                        : name != null && !name.isBlank()
+                        ? name.toLowerCase(Locale.ROOT).replace(" ", "_")
+                        : "unnamed_skill_" + index;
+                entity.setSkillId(skillId);
+                entity.setName(name != null && !name.isBlank() ? name : "Unnamed Skill");
                 entity.setDescription(s.description());
                 entity.setTags(s.tags() != null ? s.tags() : List.of());
                 return entity;
