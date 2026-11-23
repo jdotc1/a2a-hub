@@ -161,19 +161,33 @@ class RateLimitFilterTest {
         RateLimitFilter filter = new RateLimitFilter(1, 60, 10_000, objectMapper, props);
 
         MockHttpServletRequest req1 = new MockHttpServletRequest("POST", "/api/v1/tasks");
-        req1.addHeader("X-Forwarded-For", "203.0.113.195, 70.41.3.18, 150.172.238.178");
+        req1.addHeader("X-Forwarded-For", "198.51.100.9, 203.0.113.195, 10.0.0.9");
         req1.setRemoteAddr("10.0.0.1"); // Explicitly configured load balancer CIDR
+        assertThat(filter.extractClientIp(req1)).isEqualTo("203.0.113.195");
         MockHttpServletResponse res1 = new MockHttpServletResponse();
         filter.doFilterInternal(req1, res1, filterChain);
         assertThat(res1.getStatus()).isEqualTo(HttpStatus.OK.value());
 
         // Second request with same client IP in X-Forwarded-For should be blocked
         MockHttpServletRequest req2 = new MockHttpServletRequest("POST", "/api/v1/tasks");
-        req2.addHeader("X-Forwarded-For", "203.0.113.195, 70.41.3.18");
+        req2.addHeader("X-Forwarded-For", "198.51.100.10, 203.0.113.195, 10.0.0.10");
         req2.setRemoteAddr("10.0.0.2"); // Different load balancer IP
+        assertThat(filter.extractClientIp(req2)).isEqualTo("203.0.113.195");
         MockHttpServletResponse res2 = new MockHttpServletResponse();
         filter.doFilterInternal(req2, res2, filterChain);
         assertThat(res2.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+    }
+
+    @Test
+    @DisplayName("Should fail closed on malformed forwarded chain from trusted proxy")
+    void shouldRejectMalformedForwardedChain() {
+        SecurityProperties props = new SecurityProperties();
+        props.getRateLimit().setTrustedProxies(List.of("10.0.0.0/24"));
+        RateLimitFilter filter = new RateLimitFilter(1, 60, 10_000, objectMapper, props);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/agents");
+        request.setRemoteAddr("10.0.0.1");
+        request.addHeader("X-Forwarded-For", "198.51.100.1, invalid-hop");
+        assertThat(filter.extractClientIp(request)).isEqualTo("10.0.0.1");
     }
 
     @Test
