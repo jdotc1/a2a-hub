@@ -78,6 +78,8 @@ services:
       # In any staging, cloud, or production deployment, A2AHUB_SECURITY_SSRF_ALLOW_PRIVATE_NETWORKS MUST be set to "false"
       # to prevent SSRF and DNS rebinding attacks targeting loopback, RFC 1918 private ranges, and cloud metadata endpoints.
       A2AHUB_SECURITY_SSRF_ALLOW_PRIVATE_NETWORKS: "true"
+      # Trust only the pinned frontend reverse proxy, never the whole bridge subnet.
+      A2A_HUB_TRUSTED_PROXIES: "172.30.41.10"
       A2A_HUB_BOOTSTRAP_AGENTS: "http://weather-agent:8081,http://calculator-agent:8082"
     depends_on:
       postgres:
@@ -100,6 +102,9 @@ services:
     container_name: a2a-hub-frontend
     ports:
       - "3000:8080"
+    networks:
+      default:
+        ipv4_address: 172.30.41.10
     cap_drop:
       - ALL
     security_opt:
@@ -116,3 +121,11 @@ services:
 
 volumes:
   postgres_data:
+
+# Deliberately pinned frontend address keeps forwarded-client trust exact.
+# Change both subnet/address and A2A_HUB_TRUSTED_PROXIES together if overlapping a local network.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.30.41.0/24
