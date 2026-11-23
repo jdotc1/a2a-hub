@@ -49,13 +49,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new ChannelInterceptor() {
+        registration.interceptors(inboundAuthInterceptor());
+    }
+
+    ChannelInterceptor inboundAuthInterceptor() {
+        return new ChannelInterceptor() {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
                 if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
                     String configuredApiKey = securityProperties.getApiKey();
-                    if (configuredApiKey != null && !configuredApiKey.isBlank()) {
+                    if (securityProperties.isRequireAuthForReads()
+                            && configuredApiKey != null && !configuredApiKey.isBlank()) {
                         String apiKey = accessor.getFirstNativeHeader("X-API-Key");
                         if (apiKey == null || apiKey.isBlank()) {
                             String authHeader = accessor.getFirstNativeHeader("Authorization");
@@ -72,6 +77,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 }
                 return message;
             }
-        });
+        };
     }
 }
