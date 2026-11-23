@@ -53,9 +53,9 @@ class WebSocketInboundAuthenticationTest {
         props.setApiKey("expected-key");
         props.setRequireAuthForReads(true);
         var interceptor = new WebSocketConfig(props).inboundAuthInterceptor();
-        for (Message<byte[]> message : new Message[] {
+        for (Message<byte[]> message : java.util.List.of(
                 stomp(StompCommand.CONNECT, "X-API-Key", "expected-key"),
-                stomp(StompCommand.CONNECT, "Authorization", "Bearer expected-key") }) {
+                stomp(StompCommand.CONNECT, "Authorization", "Bearer expected-key"))) {
             assertThat(interceptor.preSend(message, channel)).isSameAs(message);
         }
     }
