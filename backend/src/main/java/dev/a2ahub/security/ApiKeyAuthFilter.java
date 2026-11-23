@@ -87,7 +87,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                 configuredKey.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-            response.getWriter().write("{\\\"type\\\":\\\"about:blank\\\",\\\"title\\\":\\\"Unauthorized\\\",\\\"status\\\":401,\\\"detail\\\":\\\"Invalid or missing API key\\\"}");
+            response.getWriter().write("{\"type\":\"about:blank\",\"title\":\"Unauthorized\",\"status\":401,\"detail\":\"Invalid or missing API key\"}");
             return;
         }
 
