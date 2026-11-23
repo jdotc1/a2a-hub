@@ -133,7 +133,7 @@ public class AgentDiscoveryService {
                     s.name(),
                     s.description(),
                     new HashSet<>(s.tags() != null ? s.tags() : List.of())
-            )).addAgent(s.agentId());
+            )).addTags(s.tags()).addAgent(s.agentId());
         }
 
         return skillMap.values().stream()
@@ -176,6 +176,13 @@ public class AgentDiscoveryService {
             this.name = name;
             this.description = description;
             this.tags = tags;
+        }
+
+        public SkillSummaryBuilder addTags(List<String> additionalTags) {
+            if (additionalTags != null) {
+                this.tags.addAll(additionalTags);
+            }
+            return this;
         }
 
         public void addAgent(UUID agentId) {
