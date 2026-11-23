@@ -54,6 +54,12 @@ class ApiKeyAuthFilterTest {
         verify(filterChain, never()).doFilter(request, response);
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getContentAsString()).contains("Unauthorized");
+        assertThat(response.getContentType()).isEqualTo("application/problem+json");
+        var problem = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(response.getContentAsString());
+        assertThat(problem.get("status").asInt()).isEqualTo(401);
+        assertThat(problem.get("title").asText()).isEqualTo("Unauthorized");
+        assertThat(problem.get("detail").asText()).contains("Invalid or missing API key");
     }
 
     @Test
