@@ -131,6 +131,39 @@ class AgentRegistryServiceTest {
     }
 
     @Test
+    @DisplayName("Should persist skills without identifiers and use locale-independent IDs")
+    void shouldHandleIncompleteSkillNames() {
+        String url = "https://agent.example.com";
+        AgentCard card = new AgentCard("Agent", "Description", url, "1.0",
+                List.of(
+                        new AgentCard.Skill(null, null, null, List.of()),
+                        new AgentCard.Skill("", "", null, List.of()),
+                        new AgentCard.Skill(null, "Istanbul Weather", null, List.of())),
+                Map.of(), List.of());
+        Agent saved = new Agent();
+        saved.setId(UUID.randomUUID());
+        when(agentRepository.save(any(Agent.class))).thenReturn(saved);
+
+        java.util.Locale original = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"));
+            agentRegistryService.persistRegisteredAgent(url, card, null);
+        } finally {
+            java.util.Locale.setDefault(original);
+        }
+
+        verify(agentSkillRepository).saveAll(argThat(skills -> {
+            List<AgentSkillEntity> list = new java.util.ArrayList<>();
+            skills.forEach(list::add);
+            return list.size() == 3
+                    && "unnamed_skill_0".equals(list.get(0).getSkillId())
+                    && "unnamed_skill_1".equals(list.get(1).getSkillId())
+                    && "istanbul_weather".equals(list.get(2).getSkillId())
+                    && "Unnamed Skill".equals(list.get(0).getName());
+        }));
+    }
+
+    @Test
     @DisplayName("Should successfully find agent by ID")
     void shouldFindAgentById() {
         UUID id = UUID.randomUUID();
