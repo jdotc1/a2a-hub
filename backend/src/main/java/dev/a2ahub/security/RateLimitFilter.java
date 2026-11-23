@@ -162,10 +162,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            int commaIdx = xForwardedFor.indexOf(',');
-            String clientIp = (commaIdx != -1) ? xForwardedFor.substring(0, commaIdx).trim() : xForwardedFor.trim();
-            if (isValidIp(clientIp)) {
-                return clientIp;
+            // Walk from the backend-facing trusted proxy toward the user. The
+            // right-most untrusted hop is the client, not a spoofable left-most value.
+            String[] hops = xForwardedFor.split(",", -1);
+            for (int i = hops.length - 1; i >= 0; i--) {
+                String hop = hops[i].trim();
+                if (!isValidIp(hop)) {
+                    // Never use a partial or malformed forwarding chain for rate limits.
+                    return cleanRemoteAddr;
+                }
+                if (!isTrustedProxy(hop)) {
+                    return hop;
+                }
             }
         }
 
